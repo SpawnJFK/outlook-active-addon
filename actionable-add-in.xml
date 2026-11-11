@@ -4,25 +4,25 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
   xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
   xsi:type="MailApp">
-  <Id>527104a1-f1a5-475a-9199-7a968161c870</Id>
-  <Version>1.0.0.0</Version>
-  <ProviderName>Outlook Dev Center</ProviderName>
+  <Id>5e61056d-d67d-46e5-b001-781e266da729</Id>
+  <Version>1.1.0.0</Version>
+  <ProviderName>Djordje Radulovic</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Actionable Message Activation"/>
   <Description DefaultValue="This is a simple add-in designed to be activated from an actionable message."/>
-  <HighResolutionIconUrl DefaultValue="https://localhost:8080/images/hi-res-icon.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/images/hi-res-icon.png"/>
   <Hosts>
     <Host Name="Mailbox"/>
   </Hosts>
   <Requirements>
     <Sets>
-      <Set Name="MailBox" MinVersion="1.1"/>
+      <Set Name="Mailbox" MinVersion="1.1"/>
     </Sets>
   </Requirements>
   <FormSettings>
     <Form xsi:type="ItemRead">
       <DesktopSettings>
-        <SourceLocation DefaultValue="https://localhost:8080/taskpane/taskpane.html"/>
+        <SourceLocation DefaultValue="https://localhost:3000/taskpane/taskpane.html"/>
         <RequestedHeight>250</RequestedHeight>
       </DesktopSettings>
     </Form>
@@ -92,13 +92,13 @@
 
       <Resources>
         <bt:Images>
-          <bt:Image id="icon-16" DefaultValue="https://localhost:8080/images/icon-16.png"/>
-          <bt:Image id="icon-32" DefaultValue="https://localhost:8080/images/icon-32.png"/>
-          <bt:Image id="icon-80" DefaultValue="https://localhost:8080/images/icon-80.png"/>
+          <bt:Image id="icon-16" DefaultValue="https://localhost:3000/images/icon-16.png"/>
+          <bt:Image id="icon-32" DefaultValue="https://localhost:3000/images/icon-32.png"/>
+          <bt:Image id="icon-80" DefaultValue="https://localhost:3000/images/icon-80.png"/>
         </bt:Images>
         <bt:Urls>
-          <bt:Url id="funcFile" DefaultValue="https://localhost:8080/functionfile/functions.html"/>
-          <bt:Url id="taskPaneUrl" DefaultValue="https://localhost:8080/taskpane/taskpane.html"/>
+          <bt:Url id="funcFile" DefaultValue="https://localhost:3000/functionfile/functions.html"/>
+          <bt:Url id="taskPaneUrl" DefaultValue="https://localhost:3000/taskpane/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
           <bt:String id="groupLabel" DefaultValue="Actionable Message Activation"/>

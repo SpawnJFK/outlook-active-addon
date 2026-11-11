@@ -1,69 +1,74 @@
-// Copyright (c) Microsoft. All rights reserved. Licensed under the MIT license. see LICENSE in the project root for license information.
+// Copyright (c) Microsoft. All rights reserved. Licensed under the MIT license. See LICENSE in the project root.
+// Modernized 2026 by Djordje Radulovic: Office.onReady, Graph sendMail via NAA, Office.actions.associate.
+"use strict";
 
-var sendDlg;
-var btnEvent;
+let sendDialog = null;
+let pendingEvent = null;
 
-Office.initialize = function () {
-};
+Office.onReady(function () {
+  Office.actions.associate("sendActionableMessage", sendActionableMessage);
+});
 
-function showError(error) {
-  Office.context.mailbox.item.notificationMessages.replaceAsync("send-msg-error", {
-    type: "errorMessage",
-    message: error
-  }, function(result){
-  });
+function notify(key, type, message) {
+  const details = { type: type, message: message.substring(0, 150) };
+  if (type === Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage) {
+    details.icon = "icon-16";
+    details.persistent = false;
+  }
+  Office.context.mailbox.item.notificationMessages.replaceAsync(key, details);
 }
 
-function sendActionableMessage(event) {
-  // Save the event object so we can finish up later
-  btnEvent = event;
-
-  // Get the REST access token
-  Office.context.mailbox.getCallbackTokenAsync(
-    { isRest: true },
-    function(result) {
-      if (result.status == Office.AsyncResultStatus.Succeeded) {
-        var token = result.value;
-        
-        var url = new URI("../dialog/dialog.html", window.location);
-
-        url.addSearch("token", token);
-        url.addSearch("restUrl", Office.context.mailbox.restUrl);
-        url.addSearch("userEmail", Office.context.mailbox.userProfile.emailAddress);
-
-        var dialogOptions = { width: 70, height: 80, displayInIframe: true };
-      
-        Office.context.ui.displayDialogAsync(url.toString(), dialogOptions, function(result) {
-          sendDlg = result.value;
-          sendDlg.addEventHandler(Microsoft.Office.WebExtension.EventType.DialogMessageReceived, receiveMessage);
-          sendDlg.addEventHandler(Microsoft.Office.WebExtension.EventType.DialogEventReceived, dialogClosed);
-        });
-      } else {
-        showError("Could not retrieve access token: " + JSON.stringify(result.error));
-        btnEvent.completed();
-      }
-    }
-  );
-}
-
-function receiveMessage(success) {
-  if (success) {
-    sendDlg.close();
-
-    Office.context.mailbox.item.notificationMessages.replaceAsync("send-msg-success", {
-      type: "informationalMessage",
-      icon: "icon-16",
-      message: "Message sent successfully.",
-      persistent: false
-    }, function(result){
-      btnEvent.completed();
-      btnEvent = null;
-    });
+function finish() {
+  if (pendingEvent) {
+    pendingEvent.completed();
+    pendingEvent = null;
   }
 }
 
-function dialogClosed(message) {
-  sendDlg = null;
-  btnEvent.completed();
-  btnEvent = null;
+function sendActionableMessage(event) {
+  pendingEvent = event;
+  const url = new URL("../dialog/dialog.html", window.location.href).toString();
+
+  Office.context.ui.displayDialogAsync(url, { width: 50, height: 70, displayInIframe: true }, function (result) {
+    if (result.status !== Office.AsyncResultStatus.Succeeded) {
+      notify("send-msg-error", Office.MailboxEnums.ItemNotificationMessageType.ErrorMessage,
+        "Could not open the dialog: " + result.error.message);
+      finish();
+      return;
+    }
+    sendDialog = result.value;
+    sendDialog.addEventHandler(Office.EventType.DialogMessageReceived, onDialogMessage);
+    sendDialog.addEventHandler(Office.EventType.DialogEventReceived, onDialogClosed);
+  });
+}
+
+async function onDialogMessage(arg) {
+  sendDialog.close();
+  sendDialog = null;
+
+  let context;
+  try {
+    context = JSON.parse(arg.message);
+  } catch {
+    notify("send-msg-error", Office.MailboxEnums.ItemNotificationMessageType.ErrorMessage,
+      "The dialog returned invalid JSON.");
+    finish();
+    return;
+  }
+
+  try {
+    const recipient = Office.context.mailbox.userProfile.emailAddress;
+    await AddinAuth.sendMail(AddinCard.buildMessage(context, recipient));
+    notify("send-msg-success", Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
+      "Actionable message sent. Check your inbox.");
+  } catch (err) {
+    notify("send-msg-error", Office.MailboxEnums.ItemNotificationMessageType.ErrorMessage,
+      "Could not send the message: " + err.message);
+  }
+  finish();
+}
+
+function onDialogClosed() {
+  sendDialog = null;
+  finish();
 }

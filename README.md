@@ -1,45 +1,72 @@
-# Outlook Add-in: Actionable Message Activation
+# Outlook add-in: actionable message activation
 
-The sample demonstrates how to [activate an add-in from an actionable message](https://docs.microsoft.com/outlook/actionable-messages/invoke-add-in-from-actionable-message) and pass an intialization context to the add-in.
+An Outlook add-in that sends you an actionable message (an Adaptive Card in an email). One of the card's buttons opens the add-in's task pane and hands it an initialization context, so the add-in starts with the data from that specific email.
 
-## Running the sample
+The add-in adds two ribbon buttons when you read a message:
 
-In order to run this sample, you will need to host the included files on a web server. The choice of web server is completely up to you. The only requirement is that the web server be protected by a valid SSL certificate. 
+- **Send Add-in Activation** opens a dialog where you edit a JSON context. It then sends you an email with a card containing two buttons:
+  - **Invoke "View Initialization Context"** opens this add-in's task pane with the context.
+  - **Invoke Message Header Analyzer** opens a store add-in. If you don't have it, Outlook offers to install it on demand.
+- **View Initialization Context** opens the task pane by hand. With no context it tells you to open it from the card instead.
 
-### Update the manifest
+## What changed in 1.1 (2026)
 
-Before loading the add-in, you must update the [manifest](actionable-add-in.xml) to replace all instances of `localhost:8080` with the base URL of the server where you are hosting your add-in.
+Version 1.0 (2018) was built on APIs Microsoft has since retired. This version brings it up to date:
 
-### Install the add-in
+| Area | 1.0 (2018) | 1.1 (2026) |
+| --- | --- | --- |
+| Sending mail | Outlook REST v2.0 with `getCallbackTokenAsync({ isRest: true })`. The endpoint has been retired. | Microsoft Graph `/me/sendMail`, with tokens from nested app authentication (MSAL) |
+| Card format | Legacy `MessageCard` | Adaptive Card 1.0 with `Action.InvokeAddInCommand` |
+| Office.js startup | `Office.initialize` | `Office.onReady`, plus `Office.actions.associate` for the ribbon function |
+| Libraries | jQuery, URI.js, moment.js, Office UI Fabric CDN | No runtime dependencies except Office.js and msal-browser. Plain DOM code and its own small stylesheet, with dark mode. |
+| Task pane | The `InitializationContextChanged` handler only logged its arguments | The handler renders the new context when you click a card button with the pane already open |
+| Tooling | None | Local HTTPS dev server, ESLint |
 
-Follow the instructions in [Sideload Outlook add-ins for testing](https://docs.microsoft.com/en-us/outlook/add-ins/sideload-outlook-add-ins-for-testing) to sideload the `actionable-add-in.xml` file to install the add-in.
+## Setup
 
-### Use the add-in
+You need Node.js 20 or later, a Microsoft 365 account, and Outlook on the web, new Outlook for Windows or a current Outlook for Mac. Nested app authentication isn't available in older Outlook builds.
 
-The add-in adds two buttons to the ribbon when you are reading email messages.
+1. **Register an app in Microsoft Entra ID** (Azure portal, then App registrations, then New registration):
+   - Supported account types: any organizational directory and personal Microsoft accounts.
+   - Redirect URI: platform **Single-page application**, value `brk-multihub://localhost:3000`.
+   - Under API permissions, add the delegated Microsoft Graph permission **Mail.Send**.
+   - Copy the Application (client) ID into `clientId` in [`config.js`](config.js).
+2. **Register an actionable message provider** in the [Actionable Email Developer Dashboard](https://aka.ms/publishoam). The **Test Users** scope is enough for cards sent to your own mailbox. Copy the provider ID into `originator` in `config.js`.
+3. Install and trust the local dev certificate, then start the server:
 
-- **Send Add-in Activation** - This button allows you to send yourself an actionable email message with buttons that invoke add-ins.
-- **View Initialization Context** - This button opens a taskpane and displays the current initialization context (if present).
+   ```bash
+   npm install
+   npm run certs
+   npm start
+   ```
 
-> **Note:** The initialization context is only present when the taskpane is invoked from an actionable message. If you open the taskpane by using the ribbon button, you will see a message letting you know that you need to invoke the add-in from a message.
->
-> ![A screenshot of the message presented when you manually activate the add-in](readme-images/manual-activation.PNG)
+   The add-in is now served at `https://localhost:3000`.
+4. [Sideload](https://learn.microsoft.com/office/dev/add-ins/outlook/sideload-outlook-add-ins-for-testing) `actionable-add-in.xml` in Outlook.
 
-1. Click the **Send Add-in Activation** button. A dialog opens to send the message: 
+To host it somewhere other than localhost, replace every `https://localhost:3000` in the manifest with your HTTPS origin and add `brk-multihub://<your-domain>` as a redirect URI.
 
-    ![A screenshot of the send message dialog](readme-images/send-message.PNG)
-1. (Optional): Modify the initialization context.
-1. Click the **Send Message** button.
-1. When the message arrives in your inbox, open it.
+## Project layout
 
-    ![A screenshot of the actionable message sent by the add-in](readme-images/actionable-message.PNG)
-1. Click the **Invoke "View Initialization Context"** button.
-1. The add-in taskpane opens and displays the initialization context.
+```
+actionable-add-in.xml   add-in manifest (ribbon buttons, task pane, function file)
+config.js               client ID, provider ID and add-in ID
+shared/auth.js          MSAL nested app auth + Graph sendMail
+shared/card.js          builds the Adaptive Card email
+functionfile/           ribbon button handler (opens the dialog, sends the mail)
+dialog/                 JSON context editor
+taskpane/               shows the initialization context
+scripts/serve.mjs       HTTPS dev server on port 3000
+```
 
-    ![A screenshot of the opened taskpane](readme-images/activated-taskpane.PNG)
+## Scripts
 
-### Try on-demand installation of store add-in
+| Command | What it does |
+| --- | --- |
+| `npm start` | Serves the add-in over HTTPS on port 3000 |
+| `npm run certs` | Installs the trusted Office dev certificate |
+| `npm run lint` | Runs ESLint |
+| `npm run validate` | Validates the manifest with Microsoft's validation service |
 
-You can use the second button in the actionable message to see how on-demand installation of store add-ins works. Before trying it, if you already have the [Message Header Analyzer](https://appsource.microsoft.com/en-us/product/office/WA104005406), be sure to uninstall it.
+## Credits
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+Based on Microsoft's 2018 Outlook sample for [invoking an add-in from an actionable message](https://learn.microsoft.com/outlook/actionable-messages/invoke-add-in), released under the MIT license. The 2026 update is by Djordje Radulovic. See [LICENSE](LICENSE).

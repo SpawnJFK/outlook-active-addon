@@ -1,33 +1,13 @@
-#content-main {
-  padding: 5px;
-}
+/* Copyright (c) Microsoft. All rights reserved. Licensed under the MIT license. See LICENSE in the project root. */
 
 #current-msg {
-  padding-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
 
-#error {
-  display: none;
+pre.context {
   padding: 10px;
-}
-
-.icon {
-  vertical-align: middle;
-}
-
-#no-context {
-  display: none;
-  padding: 10px;
-}
-
-#has-context {
-  display: none;
-}
-
-pre {
-  background-color: #f8f8f8;
-  border: 1px solid #ccc;
-  padding: 6px 10px;
-  word-wrap: break-word;
-  white-space: pre-wrap;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: Consolas, "Cascadia Mono", Menlo, monospace;
 }

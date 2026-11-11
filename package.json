@@ -1,0 +1,21 @@
+{
+  "name": "outlook-active-addon",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Outlook add-in invoked from an actionable message (Adaptive Card), sending mail through Microsoft Graph with nested app authentication.",
+  "license": "MIT",
+  "scripts": {
+    "certs": "office-addin-dev-certs install",
+    "start": "node scripts/serve.mjs",
+    "validate": "office-addin-manifest validate actionable-add-in.xml",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.13.0",
+    "globals": "16.5.0",
+    "http-server": "14.1.1",
+    "office-addin-dev-certs": "3.0.1",
+    "office-addin-manifest": "3.0.1"
+  }
+}
